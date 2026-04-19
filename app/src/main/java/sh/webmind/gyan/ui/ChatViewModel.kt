@@ -1,6 +1,7 @@
 package sh.webmind.gyan.ui
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
@@ -9,14 +10,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.webmind.gyan.data.*
-import sh.webmind.gyan.data.CrashReporter
 
 class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
 
-    private val client = GyanClient()
-    private val localEngine = LocalEngine(app)
     private val downloader = ModelDownloader(app)
-    private val onnxEncoder = OnnxEncoder(app)
+    private val gpu = GpuTransformer(app)
 
     val messages = mutableStateListOf<ChatMessage>()
     val isLoading = mutableStateOf(false)
@@ -25,17 +23,15 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     val downloadProgress = mutableStateOf(0f)
     val isDownloading = mutableStateOf(false)
     val isReady = mutableStateOf(false)
-
     val errorReport = mutableStateOf("")
 
     init {
         viewModelScope.launch {
             try {
-                android.util.Log.i("Gyan", "Init starting...")
+                Log.i("Gyan", "Init starting...")
                 initEngine()
-                android.util.Log.i("Gyan", "Init complete. Engine=${localEngine.isLoaded}, ONNX=${onnxEncoder.isLoaded}")
             } catch (e: Exception) {
-                android.util.Log.e("Gyan", "Init failed", e)
+                Log.e("Gyan", "Init failed", e)
                 CrashReporter.capture(app, e, "initEngine")
                 loadingProgress.value = "Error: ${e.message}"
                 errorReport.value = CrashReporter.getLastError()
@@ -45,22 +41,24 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private suspend fun initEngine() {
         if (downloader.isModelReady()) {
-            loadingProgress.value = "Loading knowledge base..."
-            try {
-                localEngine.load(downloader.embeddingsFile, downloader.metadataFile)
-                loadingProgress.value = "Loading encoder..."
-                onnxEncoder.load()
-                loadingProgress.value = "${localEngine.pairCount} knowledge pairs ready"
-                engineStatus.value = HealthResult(ok = true, points = localEngine.pairCount)
-                isReady.value = true
-            } catch (e: Exception) {
-                CrashReporter.capture(app, e, "loadModel")
-                loadingProgress.value = "Load failed: ${e.message}"
-                errorReport.value = CrashReporter.getLastError()
-                fallbackToServer()
-            }
+            loadModel()
         } else {
             downloadModel()
+        }
+    }
+
+    private suspend fun loadModel() = withContext(Dispatchers.IO) {
+        loadingProgress.value = "Loading AI engine on GPU..."
+        val ok = gpu.init(downloader.embeddingsFile, downloader.metadataFile)
+        if (ok) {
+            loadingProgress.value = "${gpu.pairCount} knowledge pairs on GPU"
+            engineStatus.value = HealthResult(ok = true, points = gpu.pairCount)
+            isReady.value = true
+            Log.i("Gyan", "GPU engine ready: ${gpu.pairCount} pairs")
+        } else {
+            loadingProgress.value = "GPU init failed. Tap Retry."
+            CrashReporter.capture(app, RuntimeException("GPU init returned false"), "loadModel")
+            errorReport.value = CrashReporter.getLastError()
         }
     }
 
@@ -78,36 +76,20 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
                 }
             }
             isDownloading.value = false
-            loadingProgress.value = "Loading knowledge base..."
-            localEngine.load(downloader.embeddingsFile, downloader.metadataFile)
-            loadingProgress.value = "Loading encoder..."
-            onnxEncoder.load()
-            loadingProgress.value = "${localEngine.pairCount} knowledge pairs ready"
-            engineStatus.value = HealthResult(ok = true, points = localEngine.pairCount)
-            isReady.value = true
+            loadModel()
         } catch (e: Exception) {
             isDownloading.value = false
             CrashReporter.capture(app, e, "downloadModel")
             errorReport.value = CrashReporter.getLastError()
-            loadingProgress.value = "Failed: ${e.message}\n\nTap Retry to try again"
-            // Don't fallback to server — show the actual error
-        }
-    }
-
-    private suspend fun fallbackToServer() {
-        loadingProgress.value = "Trying server..."
-        val health = client.health()
-        engineStatus.value = health
-        if (health.ok) {
-            loadingProgress.value = "Connected to server (${health.points} pairs)"
-            isReady.value = true
-        } else {
-            loadingProgress.value = "Tap Retry to download the model"
+            loadingProgress.value = "Download failed: ${e.message}\n\nTap Retry"
         }
     }
 
     fun retryDownload() {
-        viewModelScope.launch { downloadModel() }
+        viewModelScope.launch {
+            if (downloader.isModelReady()) loadModel()
+            else downloadModel()
+        }
     }
 
     fun sendMessage(text: String) {
@@ -117,56 +99,30 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
         isLoading.value = true
 
         val assistantId = java.util.UUID.randomUUID().toString()
-        val searchCall = ToolCall(
-            type = ToolType.KB_SEARCH,
-            query = text,
-            status = ToolStatus.RUNNING,
-        )
-        messages.add(
-            ChatMessage(
-                id = assistantId,
-                role = Role.ASSISTANT,
-                content = "",
-                toolCalls = listOf(searchCall),
-            )
-        )
+        val searchCall = ToolCall(type = ToolType.KB_SEARCH, query = text, status = ToolStatus.RUNNING)
+        messages.add(ChatMessage(id = assistantId, role = Role.ASSISTANT, content = "", toolCalls = listOf(searchCall)))
 
         viewModelScope.launch {
-            val result = if (localEngine.isLoaded) {
-                queryLocal(text)
-            } else {
-                withContext(Dispatchers.IO) { client.query(text) }
-            }
+            val result = withContext(Dispatchers.IO) { queryGpu(text) }
 
-            val toolCalls = mutableListOf<ToolCall>()
-            if (result.error != null) {
-                toolCalls.add(searchCall.copy(status = ToolStatus.FAILED, result = result.error))
-            } else {
-                toolCalls.add(searchCall.copy(
-                    status = ToolStatus.DONE,
-                    result = if (result.answer.isNotEmpty()) "Found" else "No match",
-                ))
-            }
+            val toolCalls = listOf(searchCall.copy(
+                status = if (result.error != null) ToolStatus.FAILED else ToolStatus.DONE,
+                result = result.error ?: if (result.answer.isNotEmpty()) "Found" else "No match",
+            ))
 
             val content = when {
                 result.error != null -> "Error: ${result.error}"
-                result.answer.isEmpty() && result.source == "no_match" -> "Searched ${localEngine.pairCount} pairs, best score below threshold."
-                result.answer.isEmpty() -> "No answer (${result.source}, ${result.timeMs}ms, pairs=${localEngine.pairCount})"
+                result.answer.isEmpty() -> "Searched ${gpu.pairCount} pairs, no match (score=${result.confidence})"
                 else -> result.answer
             }
 
             val idx = messages.indexOfFirst { it.id == assistantId }
             if (idx >= 0) {
                 messages[idx] = ChatMessage(
-                    id = assistantId,
-                    role = Role.ASSISTANT,
-                    content = content,
+                    id = assistantId, role = Role.ASSISTANT, content = content,
                     toolCalls = toolCalls,
-                    metadata = if (result.error == null) MessageMetadata(
-                        confidence = result.confidence,
-                        hops = result.hops,
-                        timeMs = result.timeMs,
-                        source = result.source,
+                    metadata = if (result.error == null && result.answer.isNotEmpty()) MessageMetadata(
+                        confidence = result.confidence, timeMs = result.timeMs, source = result.source,
                     ) else null,
                 )
             }
@@ -174,90 +130,30 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun queryLocal(question: String): QueryResult = withContext(Dispatchers.IO) {
+    private fun queryGpu(question: String): QueryResult {
         val start = System.currentTimeMillis()
-        try {
-            android.util.Log.i("Gyan", "queryLocal: engine=${localEngine.isLoaded}, pairs=${localEngine.pairCount}, onnx=${onnxEncoder.isLoaded}")
+        return try {
+            Log.i("Gyan", "Query: '$question'")
+            val results = gpu.query(question, topK = 5)
+            val elapsed = (System.currentTimeMillis() - start).toInt()
 
-            // Encode query via on-device ONNX
-            val queryEmb = if (onnxEncoder.isLoaded) {
-                try {
-                    onnxEncoder.encode(question)
-                } catch (e: Exception) {
-                    CrashReporter.capture(app, e, "onnxEncode failed: $question")
-                    return@withContext QueryResult(
-                        answer = "", confidence = 0f, hops = 0,
-                        timeMs = (System.currentTimeMillis() - start).toInt(),
-                        source = "", error = "Encoder error: ${e.message}",
-                    )
-                }
+            if (results.isNotEmpty() && results[0].second > 0.3f) {
+                val (idx, score) = results[0]
+                val answer = gpu.getAnswer(idx)
+                Log.i("Gyan", "Match: score=$score, answer='${answer.take(50)}'")
+                QueryResult(answer = answer, confidence = score, hops = 0, timeMs = elapsed, source = "gpu")
             } else {
-                return@withContext QueryResult(
-                    answer = "", confidence = 0f, hops = 0,
-                    timeMs = (System.currentTimeMillis() - start).toInt(),
-                    source = "", error = "Encoder not loaded",
-                )
-            }
-            android.util.Log.i("Gyan", "Query embedding: [${queryEmb[0]}, ${queryEmb[1]}, ...], norm=${kotlin.math.sqrt(queryEmb.map{it*it}.sum())}")
-            val results = localEngine.search(queryEmb, topK = 5)
-            android.util.Log.i("Gyan", "Search results: ${results.size}, top score=${results.firstOrNull()?.score}, top answer=${results.firstOrNull()?.answer?.take(50)}")
-            if (results.isNotEmpty() && results[0].score > 0.3f) {
-                val best = results[0]
-                QueryResult(
-                    answer = best.answer,
-                    confidence = best.score,
-                    hops = 0,
-                    timeMs = (System.currentTimeMillis() - start).toInt(),
-                    source = best.source,
-                )
-            } else {
-                val topScore = results.firstOrNull()?.score ?: 0f
-                val diag = "Q='$question' pairs=${localEngine.pairCount} results=${results.size} topScore=$topScore topAns='${results.firstOrNull()?.answer?.take(50)}'"
-                android.util.Log.w("Gyan", "No match: $diag")
-                // Send diagnostic to ntfy
-                try {
-                    okhttp3.OkHttpClient().newCall(
-                        okhttp3.Request.Builder()
-                            .url("https://ntfy.sh/gyan-crashes")
-                            .post(okhttp3.RequestBody.create(null, "NO MATCH: $diag".toByteArray()))
-                            .addHeader("Title", "Gyan: no match")
-                            .build()
-                    ).execute().close()
-                } catch (_: Exception) {}
-
-                QueryResult(
-                    answer = "", confidence = topScore, hops = 0,
-                    timeMs = (System.currentTimeMillis() - start).toInt(),
-                    source = "no_match",
-                )
+                val topScore = results.firstOrNull()?.second ?: 0f
+                Log.w("Gyan", "No match: topScore=$topScore")
+                QueryResult(answer = "", confidence = topScore, hops = 0, timeMs = elapsed, source = "no_match")
             }
         } catch (e: Exception) {
-            CrashReporter.capture(app, e, "queryLocal: $question")
-            QueryResult(
-                answer = "", confidence = 0f, hops = 0,
-                timeMs = (System.currentTimeMillis() - start).toInt(),
-                source = "", error = e.message,
-            )
+            Log.e("Gyan", "Query failed", e)
+            CrashReporter.capture(app, e, "queryGpu: $question")
+            QueryResult(answer = "", confidence = 0f, hops = 0,
+                timeMs = (System.currentTimeMillis() - start).toInt(), source = "", error = e.message)
         }
     }
 
-    private fun simpleEncode(text: String): FloatArray {
-        val embedding = FloatArray(384)
-        val words = text.lowercase().split(Regex("\\W+")).filter { it.length > 1 }
-        for (word in words) {
-            val hash = word.hashCode()
-            for (i in 0 until 384) {
-                embedding[i] += ((hash * (i + 1)) % 1000).toFloat() / 1000f
-            }
-        }
-        var norm = 0f
-        for (v in embedding) norm += v * v
-        norm = kotlin.math.sqrt(norm)
-        if (norm > 1e-9f) for (i in embedding.indices) embedding[i] /= norm
-        return embedding
-    }
-
-    fun clearChat() {
-        messages.clear()
-    }
+    fun clearChat() { messages.clear() }
 }

@@ -1,0 +1,866 @@
+[
+  {
+    "name": "embeddings.word_embeddings.weight",
+    "shape": [
+      30522,
+      384
+    ],
+    "offset": 0,
+    "size": 11720448
+  },
+  {
+    "name": "embeddings.position_embeddings.weight",
+    "shape": [
+      512,
+      384
+    ],
+    "offset": 11720448,
+    "size": 196608
+  },
+  {
+    "name": "embeddings.token_type_embeddings.weight",
+    "shape": [
+      2,
+      384
+    ],
+    "offset": 11917056,
+    "size": 768
+  },
+  {
+    "name": "embeddings.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 11917824,
+    "size": 384
+  },
+  {
+    "name": "embeddings.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 11918208,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.attention.self.query.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 11918592,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.0.attention.self.query.bias",
+    "shape": [
+      384
+    ],
+    "offset": 12066048,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.attention.self.key.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 12066432,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.0.attention.self.key.bias",
+    "shape": [
+      384
+    ],
+    "offset": 12213888,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.attention.self.value.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 12214272,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.0.attention.self.value.bias",
+    "shape": [
+      384
+    ],
+    "offset": 12361728,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.attention.output.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 12362112,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.0.attention.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 12509568,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.attention.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 12509952,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.attention.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 12510336,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.intermediate.dense.weight",
+    "shape": [
+      1536,
+      384
+    ],
+    "offset": 12510720,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.0.intermediate.dense.bias",
+    "shape": [
+      1536
+    ],
+    "offset": 13100544,
+    "size": 1536
+  },
+  {
+    "name": "encoder.layer.0.output.dense.weight",
+    "shape": [
+      384,
+      1536
+    ],
+    "offset": 13102080,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.0.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 13691904,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 13692288,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.0.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 13692672,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.attention.self.query.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 13693056,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.1.attention.self.query.bias",
+    "shape": [
+      384
+    ],
+    "offset": 13840512,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.attention.self.key.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 13840896,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.1.attention.self.key.bias",
+    "shape": [
+      384
+    ],
+    "offset": 13988352,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.attention.self.value.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 13988736,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.1.attention.self.value.bias",
+    "shape": [
+      384
+    ],
+    "offset": 14136192,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.attention.output.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 14136576,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.1.attention.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 14284032,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.attention.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 14284416,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.attention.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 14284800,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.intermediate.dense.weight",
+    "shape": [
+      1536,
+      384
+    ],
+    "offset": 14285184,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.1.intermediate.dense.bias",
+    "shape": [
+      1536
+    ],
+    "offset": 14875008,
+    "size": 1536
+  },
+  {
+    "name": "encoder.layer.1.output.dense.weight",
+    "shape": [
+      384,
+      1536
+    ],
+    "offset": 14876544,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.1.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 15466368,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 15466752,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.1.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 15467136,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.attention.self.query.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 15467520,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.2.attention.self.query.bias",
+    "shape": [
+      384
+    ],
+    "offset": 15614976,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.attention.self.key.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 15615360,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.2.attention.self.key.bias",
+    "shape": [
+      384
+    ],
+    "offset": 15762816,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.attention.self.value.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 15763200,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.2.attention.self.value.bias",
+    "shape": [
+      384
+    ],
+    "offset": 15910656,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.attention.output.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 15911040,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.2.attention.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 16058496,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.attention.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 16058880,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.attention.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 16059264,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.intermediate.dense.weight",
+    "shape": [
+      1536,
+      384
+    ],
+    "offset": 16059648,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.2.intermediate.dense.bias",
+    "shape": [
+      1536
+    ],
+    "offset": 16649472,
+    "size": 1536
+  },
+  {
+    "name": "encoder.layer.2.output.dense.weight",
+    "shape": [
+      384,
+      1536
+    ],
+    "offset": 16651008,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.2.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17240832,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 17241216,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.2.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17241600,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.attention.self.query.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 17241984,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.3.attention.self.query.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17389440,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.attention.self.key.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 17389824,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.3.attention.self.key.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17537280,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.attention.self.value.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 17537664,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.3.attention.self.value.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17685120,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.attention.output.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 17685504,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.3.attention.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17832960,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.attention.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 17833344,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.attention.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 17833728,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.intermediate.dense.weight",
+    "shape": [
+      1536,
+      384
+    ],
+    "offset": 17834112,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.3.intermediate.dense.bias",
+    "shape": [
+      1536
+    ],
+    "offset": 18423936,
+    "size": 1536
+  },
+  {
+    "name": "encoder.layer.3.output.dense.weight",
+    "shape": [
+      384,
+      1536
+    ],
+    "offset": 18425472,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.3.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19015296,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 19015680,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.3.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19016064,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.attention.self.query.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 19016448,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.4.attention.self.query.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19163904,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.attention.self.key.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 19164288,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.4.attention.self.key.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19311744,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.attention.self.value.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 19312128,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.4.attention.self.value.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19459584,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.attention.output.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 19459968,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.4.attention.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19607424,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.attention.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 19607808,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.attention.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 19608192,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.intermediate.dense.weight",
+    "shape": [
+      1536,
+      384
+    ],
+    "offset": 19608576,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.4.intermediate.dense.bias",
+    "shape": [
+      1536
+    ],
+    "offset": 20198400,
+    "size": 1536
+  },
+  {
+    "name": "encoder.layer.4.output.dense.weight",
+    "shape": [
+      384,
+      1536
+    ],
+    "offset": 20199936,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.4.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 20789760,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 20790144,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.4.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 20790528,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.attention.self.query.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 20790912,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.5.attention.self.query.bias",
+    "shape": [
+      384
+    ],
+    "offset": 20938368,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.attention.self.key.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 20938752,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.5.attention.self.key.bias",
+    "shape": [
+      384
+    ],
+    "offset": 21086208,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.attention.self.value.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 21086592,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.5.attention.self.value.bias",
+    "shape": [
+      384
+    ],
+    "offset": 21234048,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.attention.output.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 21234432,
+    "size": 147456
+  },
+  {
+    "name": "encoder.layer.5.attention.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 21381888,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.attention.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 21382272,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.attention.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 21382656,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.intermediate.dense.weight",
+    "shape": [
+      1536,
+      384
+    ],
+    "offset": 21383040,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.5.intermediate.dense.bias",
+    "shape": [
+      1536
+    ],
+    "offset": 21972864,
+    "size": 1536
+  },
+  {
+    "name": "encoder.layer.5.output.dense.weight",
+    "shape": [
+      384,
+      1536
+    ],
+    "offset": 21974400,
+    "size": 589824
+  },
+  {
+    "name": "encoder.layer.5.output.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 22564224,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.output.LayerNorm.weight",
+    "shape": [
+      384
+    ],
+    "offset": 22564608,
+    "size": 384
+  },
+  {
+    "name": "encoder.layer.5.output.LayerNorm.bias",
+    "shape": [
+      384
+    ],
+    "offset": 22564992,
+    "size": 384
+  },
+  {
+    "name": "pooler.dense.weight",
+    "shape": [
+      384,
+      384
+    ],
+    "offset": 22565376,
+    "size": 147456
+  },
+  {
+    "name": "pooler.dense.bias",
+    "shape": [
+      384
+    ],
+    "offset": 22712832,
+    "size": 384
+  }
+]
