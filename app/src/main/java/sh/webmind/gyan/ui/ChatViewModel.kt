@@ -15,6 +15,7 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     private val client = GyanClient()
     private val localEngine = LocalEngine(app)
     private val downloader = ModelDownloader(app)
+    private val onnxEncoder = OnnxEncoder(app)
 
     val messages = mutableStateListOf<ChatMessage>()
     val isLoading = mutableStateOf(false)
@@ -39,6 +40,8 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
             loadingProgress.value = "Loading knowledge base..."
             try {
                 localEngine.load(downloader.embeddingsFile, downloader.metadataFile)
+                loadingProgress.value = "Loading encoder..."
+                onnxEncoder.load()
                 loadingProgress.value = "${localEngine.pairCount} knowledge pairs ready"
                 engineStatus.value = HealthResult(ok = true, points = localEngine.pairCount)
                 isReady.value = true
@@ -67,13 +70,15 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
             isDownloading.value = false
             loadingProgress.value = "Loading knowledge base..."
             localEngine.load(downloader.embeddingsFile, downloader.metadataFile)
+            loadingProgress.value = "Loading encoder..."
+            onnxEncoder.load()
             loadingProgress.value = "${localEngine.pairCount} knowledge pairs ready"
             engineStatus.value = HealthResult(ok = true, points = localEngine.pairCount)
             isReady.value = true
         } catch (e: Exception) {
             isDownloading.value = false
-            loadingProgress.value = "Download failed: ${e.message}"
-            fallbackToServer()
+            loadingProgress.value = "Failed: ${e.message}\n\nTap Retry to try again"
+            // Don't fallback to server — show the actual error
         }
     }
 
@@ -159,7 +164,8 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     private suspend fun queryLocal(question: String): QueryResult = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
-            val queryEmb = simpleEncode(question)
+            // Encode query via on-device ONNX MiniLM
+            val queryEmb = onnxEncoder.encode(question)
             val results = localEngine.search(queryEmb, topK = 5)
             if (results.isNotEmpty() && results[0].score > 0.3f) {
                 val best = results[0]

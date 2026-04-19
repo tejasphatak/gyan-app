@@ -30,7 +30,11 @@ class LocalEngine(private val context: Context) {
     val pairCount get() = count
 
     /** Load model. Embeddings via mmap, metadata via SQLite. */
-    suspend fun load(embeddingsFile: File, metadataFile: File) = withContext(Dispatchers.IO) {
+    suspend fun load(
+        embeddingsFile: File,
+        metadataFile: File,
+        onProgress: ((String) -> Unit)? = null,
+    ) = withContext(Dispatchers.IO) {
         if (loaded) return@withContext
 
         // 1. Memory-map embeddings
@@ -57,10 +61,13 @@ class LocalEngine(private val context: Context) {
         channel.close()
         raf.close()
 
+        onProgress?.invoke("Embeddings loaded: $count × $dims")
+
         // 2. Convert metadata JSON → SQLite (once, then reuse)
         val dbFile = File(context.filesDir, "model/metadata.db")
         if (!dbFile.exists()) {
-            convertJsonToSqlite(metadataFile, dbFile)
+            onProgress?.invoke("Converting knowledge base (first time)...")
+            convertJsonToSqlite(metadataFile, dbFile, onProgress)
         }
         db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
 
@@ -68,7 +75,7 @@ class LocalEngine(private val context: Context) {
     }
 
     /** Convert metadata.json to SQLite — streaming, no full load. */
-    private fun convertJsonToSqlite(jsonFile: File, dbFile: File) {
+    private fun convertJsonToSqlite(jsonFile: File, dbFile: File, onProgress: ((String) -> Unit)? = null) {
         dbFile.parentFile?.mkdirs()
         val database = SQLiteDatabase.openOrCreateDatabase(dbFile, null)
         database.execSQL("CREATE TABLE IF NOT EXISTS meta (idx INTEGER PRIMARY KEY, question TEXT, answer TEXT, source TEXT)")
