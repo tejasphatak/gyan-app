@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -35,12 +36,22 @@ class OnnxEncoder(private val context: Context) {
             setIntraOpNumThreads(4)
         }
 
-        // Read model from assets
-        val modelBytes = context.assets.open("model.onnx").use { it.readBytes() }
-        session = env!!.createSession(modelBytes, opts)
+        // Copy model from assets to files dir (assets can't be memory-mapped)
+        val modelFile = java.io.File(context.filesDir, "model.onnx")
+        if (!modelFile.exists()) {
+            context.assets.open("model.onnx").use { input ->
+                modelFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+        Log.i("GyanONNX", "Loading model from ${modelFile.absolutePath} (${modelFile.length()/1024}KB)")
+        session = env!!.createSession(modelFile.absolutePath, opts)
+        Log.i("GyanONNX", "Model loaded. Inputs: ${session!!.inputNames}, Outputs: ${session!!.outputNames}")
 
         // Load WordPiece vocabulary
         vocab = loadVocab()
+        Log.i("GyanONNX", "Vocab loaded: ${vocab.size} tokens")
         loaded = true
     }
 
@@ -61,6 +72,7 @@ class OnnxEncoder(private val context: Context) {
 
         // WordPiece tokenize
         val tokens = wordPieceTokenize(text)
+        Log.d("GyanONNX", "Encoding '${text.take(50)}' → ${tokens.size} tokens: ${tokens.take(10).toList()}")
         val inputIds = LongArray(tokens.size) { tokens[it].toLong() }
         val attentionMask = LongArray(tokens.size) { 1L }
         val tokenTypeIds = LongArray(tokens.size) { 0L }
@@ -86,6 +98,7 @@ class OnnxEncoder(private val context: Context) {
         val embedding = FloatArray(384)
 
         val value = outputTensor.value
+        Log.d("GyanONNX", "Output type: ${value?.javaClass?.name}, info: ${outputTensor.info}")
         when (value) {
             is Array<*> -> {
                 // Array<Array<FloatArray>> — [batch][seq][dim]

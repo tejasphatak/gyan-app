@@ -31,8 +31,11 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             try {
+                android.util.Log.i("Gyan", "Init starting...")
                 initEngine()
+                android.util.Log.i("Gyan", "Init complete. Engine=${localEngine.isLoaded}, ONNX=${onnxEncoder.isLoaded}")
             } catch (e: Exception) {
+                android.util.Log.e("Gyan", "Init failed", e)
                 CrashReporter.capture(app, e, "initEngine")
                 loadingProgress.value = "Error: ${e.message}"
                 errorReport.value = CrashReporter.getLastError()
@@ -147,7 +150,8 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
 
             val content = when {
                 result.error != null -> "Error: ${result.error}"
-                result.answer.isEmpty() -> "I don't have an answer for that yet."
+                result.answer.isEmpty() && result.source == "no_match" -> "I searched ${localEngine.pairCount} knowledge pairs but couldn't find a match."
+                result.answer.isEmpty() -> "No answer found. (source=${result.source})"
                 else -> result.answer
             }
 
@@ -173,14 +177,24 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     private suspend fun queryLocal(question: String): QueryResult = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
-            // Encode query — try on-device ONNX, fall back to remote
-            val queryEmb = try {
-                if (onnxEncoder.isLoaded) onnxEncoder.encode(question)
-                else RemoteEncoder().encode(question)
-            } catch (e: Exception) {
-                CrashReporter.capture(app, e, "encode: $question")
-                // Last resort: remote
-                RemoteEncoder().encode(question)
+            // Encode query via on-device ONNX
+            val queryEmb = if (onnxEncoder.isLoaded) {
+                try {
+                    onnxEncoder.encode(question)
+                } catch (e: Exception) {
+                    CrashReporter.capture(app, e, "onnxEncode failed: $question")
+                    return@withContext QueryResult(
+                        answer = "", confidence = 0f, hops = 0,
+                        timeMs = (System.currentTimeMillis() - start).toInt(),
+                        source = "", error = "Encoder error: ${e.message}",
+                    )
+                }
+            } else {
+                return@withContext QueryResult(
+                    answer = "", confidence = 0f, hops = 0,
+                    timeMs = (System.currentTimeMillis() - start).toInt(),
+                    source = "", error = "Encoder not loaded",
+                )
             }
             val results = localEngine.search(queryEmb, topK = 5)
             if (results.isNotEmpty() && results[0].score > 0.3f) {
