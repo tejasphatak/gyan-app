@@ -168,32 +168,46 @@ class LocalEngine(private val context: Context) {
         }
     }
 
-    /** Search by cosine similarity over memory-mapped embeddings. */
+    /** Search by cosine similarity. Reads embeddings in chunks for speed. */
     fun search(queryEmbedding: FloatArray, topK: Int = 5): List<SearchResult> {
         val buf = embBuffer ?: return emptyList()
 
         val scores = FloatArray(count)
-        val bytesPerElement = if (isFp16) 2 else 4
-        val rowBytes = dims * bytesPerElement
+        val bytesPerRow = dims * (if (isFp16) 2 else 4)
 
-        for (i in 0 until count) {
-            var dot = 0f
-            val rowStart = dataOffset + i.toLong() * rowBytes
+        // Process in chunks of 1000 rows to avoid per-byte overhead
+        val chunkSize = 1000
+        val rowBuf = if (isFp16) ByteArray(dims * 2) else ByteArray(dims * 4)
+        val rowFloats = FloatArray(dims)
 
-            if (isFp16) {
-                for (j in 0 until dims) {
-                    val pos = (rowStart + j * 2).toInt()
-                    val halfBits = (buf.get(pos + 1).toInt() and 0xFF shl 8) or
-                                   (buf.get(pos).toInt() and 0xFF)
-                    dot += queryEmbedding[j] * halfToFloat(halfBits)
+        for (chunk in 0 until count step chunkSize) {
+            val end = minOf(chunk + chunkSize, count)
+            for (i in chunk until end) {
+                val rowStart = dataOffset + i.toLong() * bytesPerRow
+
+                // Bulk read the row bytes
+                buf.position(rowStart.toInt())
+                buf.get(rowBuf, 0, bytesPerRow)
+
+                // Convert to float
+                if (isFp16) {
+                    for (j in 0 until dims) {
+                        val lo = rowBuf[j * 2].toInt() and 0xFF
+                        val hi = rowBuf[j * 2 + 1].toInt() and 0xFF
+                        rowFloats[j] = halfToFloat((hi shl 8) or lo)
+                    }
+                } else {
+                    val fb = java.nio.ByteBuffer.wrap(rowBuf).order(ByteOrder.LITTLE_ENDIAN)
+                    fb.asFloatBuffer().get(rowFloats)
                 }
-            } else {
+
+                // Dot product
+                var dot = 0f
                 for (j in 0 until dims) {
-                    val pos = (rowStart + j * 4).toInt()
-                    dot += queryEmbedding[j] * buf.getFloat(pos)
+                    dot += queryEmbedding[j] * rowFloats[j]
                 }
+                scores[i] = dot
             }
-            scores[i] = dot
         }
 
         // Top-K
