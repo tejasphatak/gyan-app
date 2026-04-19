@@ -75,18 +75,44 @@ class OnnxEncoder(private val context: Context) {
         )
 
         val output = sess.run(inputs)
+        val outputTensor = output[0]
 
-        @Suppress("UNCHECKED_CAST")
-        val tokenEmbeddings = (output[0].value as Array<Array<FloatArray>>)[0]
-
-        // Mean pooling
+        // Output shape: [1, seq_len, 384]
+        // ONNX Runtime Android may return different Java types
+        val seqLen = tokens.size
         val embedding = FloatArray(384)
-        for (dim in 0 until 384) {
-            var sum = 0f
-            for (tok in tokenEmbeddings.indices) {
-                sum += tokenEmbeddings[tok][dim]
+
+        val value = outputTensor.value
+        when (value) {
+            is Array<*> -> {
+                // Array<Array<FloatArray>> — [batch][seq][dim]
+                @Suppress("UNCHECKED_CAST")
+                val batch = value as Array<Array<FloatArray>>
+                val tokenEmbs = batch[0]
+                for (dim in 0 until 384) {
+                    var sum = 0f
+                    for (tok in tokenEmbs.indices) sum += tokenEmbs[tok][dim]
+                    embedding[dim] = sum / tokenEmbs.size
+                }
             }
-            embedding[dim] = sum / tokenEmbeddings.size
+            is FloatArray -> {
+                // Flat float array — [1 * seq_len * 384]
+                for (dim in 0 until 384) {
+                    var sum = 0f
+                    for (tok in 0 until seqLen) sum += value[tok * 384 + dim]
+                    embedding[dim] = sum / seqLen
+                }
+            }
+            else -> {
+                // Try getting as OnnxTensor float buffer
+                val tensor = outputTensor as OnnxTensor
+                val floatBuf = tensor.floatBuffer
+                for (dim in 0 until 384) {
+                    var sum = 0f
+                    for (tok in 0 until seqLen) sum += floatBuf.get(tok * 384 + dim)
+                    embedding[dim] = sum / seqLen
+                }
+            }
         }
 
         // L2 normalize
