@@ -150,8 +150,8 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
 
             val content = when {
                 result.error != null -> "Error: ${result.error}"
-                result.answer.isEmpty() && result.source == "no_match" -> "I searched ${localEngine.pairCount} knowledge pairs but couldn't find a match."
-                result.answer.isEmpty() -> "No answer found. (source=${result.source})"
+                result.answer.isEmpty() && result.source == "no_match" -> "Searched ${localEngine.pairCount} pairs, best score below threshold."
+                result.answer.isEmpty() -> "No answer (${result.source}, ${result.timeMs}ms, pairs=${localEngine.pairCount})"
                 else -> result.answer
             }
 
@@ -177,6 +177,8 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     private suspend fun queryLocal(question: String): QueryResult = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
+            android.util.Log.i("Gyan", "queryLocal: engine=${localEngine.isLoaded}, pairs=${localEngine.pairCount}, onnx=${onnxEncoder.isLoaded}")
+
             // Encode query via on-device ONNX
             val queryEmb = if (onnxEncoder.isLoaded) {
                 try {
@@ -196,7 +198,9 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
                     source = "", error = "Encoder not loaded",
                 )
             }
+            android.util.Log.i("Gyan", "Query embedding: [${queryEmb[0]}, ${queryEmb[1]}, ...], norm=${kotlin.math.sqrt(queryEmb.map{it*it}.sum())}")
             val results = localEngine.search(queryEmb, topK = 5)
+            android.util.Log.i("Gyan", "Search results: ${results.size}, top score=${results.firstOrNull()?.score}, top answer=${results.firstOrNull()?.answer?.take(50)}")
             if (results.isNotEmpty() && results[0].score > 0.3f) {
                 val best = results[0]
                 QueryResult(
@@ -207,8 +211,22 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
                     source = best.source,
                 )
             } else {
+                val topScore = results.firstOrNull()?.score ?: 0f
+                val diag = "Q='$question' pairs=${localEngine.pairCount} results=${results.size} topScore=$topScore topAns='${results.firstOrNull()?.answer?.take(50)}'"
+                android.util.Log.w("Gyan", "No match: $diag")
+                // Send diagnostic to ntfy
+                try {
+                    okhttp3.OkHttpClient().newCall(
+                        okhttp3.Request.Builder()
+                            .url("https://ntfy.sh/gyan-crashes")
+                            .post(okhttp3.RequestBody.create(null, "NO MATCH: $diag".toByteArray()))
+                            .addHeader("Title", "Gyan: no match")
+                            .build()
+                    ).execute().close()
+                } catch (_: Exception) {}
+
                 QueryResult(
-                    answer = "", confidence = 0f, hops = 0,
+                    answer = "", confidence = topScore, hops = 0,
                     timeMs = (System.currentTimeMillis() - start).toInt(),
                     source = "no_match",
                 )
