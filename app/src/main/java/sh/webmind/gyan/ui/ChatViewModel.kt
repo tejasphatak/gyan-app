@@ -48,9 +48,11 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun loadModel() = withContext(Dispatchers.IO) {
+    private suspend fun loadModel() {
         loadingProgress.value = "Loading AI engine on GPU..."
-        val ok = gpu.init(downloader.embeddingsFile, downloader.metadataFile)
+        val ok = withContext(Dispatchers.IO) {
+            gpu.init(downloader.embeddingsFile, downloader.metadataFile)
+        }
         if (ok) {
             loadingProgress.value = "${gpu.pairCount} knowledge pairs on GPU"
             engineStatus.value = HealthResult(ok = true, points = gpu.pairCount)

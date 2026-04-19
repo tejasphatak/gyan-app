@@ -16,9 +16,9 @@ import java.util.concurrent.TimeUnit
 class ModelDownloader(private val context: Context) {
 
     companion object {
-        // Use 88K small model that fits in phone memory (135MB GPU buffer)
+        // Full 1.24M model — uploaded in chunks to GPU
         private const val MODEL_BASE =
-            "https://huggingface.co/TejaDaBheja/gyan-model/resolve/main/small"
+            "https://huggingface.co/TejaDaBheja/gyan-model/resolve/main"
         private const val EMBEDDINGS_FILE = "embeddings.npy"
         private const val METADATA_FILE = "metadata.json"
     }
@@ -37,10 +37,8 @@ class ModelDownloader(private val context: Context) {
     /** Check if model is already downloaded (and is the right size). */
     fun isModelReady(): Boolean {
         if (!embeddingsFile.exists() || !metadataFile.exists()) return false
-        // Small model: embeddings ~68MB, metadata ~23MB
-        // If files are too large (old 1.24M model), re-download
         val embSize = embeddingsFile.length()
-        return embSize in 1_000_000..200_000_000
+        return embSize > 1_000_000 && metadataFile.length() > 1_000_000
     }
 
     /** Delete old model to force re-download. */

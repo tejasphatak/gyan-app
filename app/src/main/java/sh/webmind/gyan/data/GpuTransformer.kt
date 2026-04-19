@@ -473,40 +473,57 @@ class GpuTransformer(private val context: Context) {
         val shapeMatch = Regex("""'shape':\s*\((\d+),\s*(\d+)\)""").find(header)!!
         kbCount = shapeMatch.groupValues[1].toInt()
         val dataOffset = 8 + 2 + headerLen
-        val isFp16 = header.contains("float16")
+        val isFp16 = header.contains("float16") || header.contains("<f2")
 
         Log.i(TAG, "KB: $kbCount × $HIDDEN, fp16=$isFp16")
 
-        // Read and convert to fp32, upload to GPU in chunks
+        // Create GPU buffer first (empty), then upload in chunks
         val totalFloats = kbCount * HIDDEN
-        val floatBuf = ByteBuffer.allocateDirect(totalFloats * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-
-        raf.seek(dataOffset.toLong())
-        val chunkRows = 10000
-        val chunkBytes = ByteArray(chunkRows * HIDDEN * 2)
-        var remaining = kbCount
-        while (remaining > 0) {
-            val rows = minOf(chunkRows, remaining)
-            val bytes = rows * HIDDEN * (if (isFp16) 2 else 4)
-            raf.readFully(chunkBytes, 0, bytes)
-            if (isFp16) {
-                for (i in 0 until rows * HIDDEN) {
-                    val lo = chunkBytes[i * 2].toInt() and 0xFF
-                    val hi = chunkBytes[i * 2 + 1].toInt() and 0xFF
-                    floatBuf.put(halfToFloat((hi shl 8) or lo))
-                }
-            }
-            remaining -= rows
-        }
-        raf.close()
-        floatBuf.flip()
-
-        // Upload to GPU
         val buf = IntArray(1)
         GLES31.glGenBuffers(1, buf, 0)
         kbEmbeddingsSSBO = buf[0]
         GLES31.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, kbEmbeddingsSSBO)
-        GLES31.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, totalFloats * 4, floatBuf, GLES31.GL_STATIC_DRAW)
+        GLES31.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, totalFloats * 4, null, GLES31.GL_STATIC_DRAW)
+
+        // Upload in chunks of 10K rows (15MB each) — fits in any phone's heap
+        raf.seek(dataOffset.toLong())
+        val chunkRows = 10000
+        val bytesPerRow = HIDDEN * (if (isFp16) 2 else 4)
+        val chunkBytes = ByteArray(chunkRows * bytesPerRow)
+        val chunkFloats = FloatArray(chunkRows * HIDDEN)
+        val chunkBuf = ByteBuffer.allocateDirect(chunkRows * HIDDEN * 4).order(ByteOrder.nativeOrder())
+
+        var uploaded = 0
+        while (uploaded < kbCount) {
+            val rows = minOf(chunkRows, kbCount - uploaded)
+            val bytes = rows * bytesPerRow
+            raf.readFully(chunkBytes, 0, bytes)
+
+            // Convert to fp32
+            if (isFp16) {
+                for (i in 0 until rows * HIDDEN) {
+                    val lo = chunkBytes[i * 2].toInt() and 0xFF
+                    val hi = chunkBytes[i * 2 + 1].toInt() and 0xFF
+                    chunkFloats[i] = halfToFloat((hi shl 8) or lo)
+                }
+            } else {
+                val bb = ByteBuffer.wrap(chunkBytes, 0, bytes).order(ByteOrder.LITTLE_ENDIAN)
+                bb.asFloatBuffer().get(chunkFloats, 0, rows * HIDDEN)
+            }
+
+            // Upload chunk to GPU at correct offset
+            chunkBuf.clear()
+            chunkBuf.asFloatBuffer().put(chunkFloats, 0, rows * HIDDEN)
+            chunkBuf.position(0)
+            chunkBuf.limit(rows * HIDDEN * 4)
+            GLES31.glBufferSubData(GLES31.GL_SHADER_STORAGE_BUFFER, uploaded * HIDDEN * 4, rows * HIDDEN * 4, chunkBuf)
+
+            uploaded += rows
+            if (uploaded % 100000 < chunkRows) {
+                Log.i(TAG, "KB upload: $uploaded/$kbCount")
+            }
+        }
+        raf.close()
 
         // Scores buffer
         GLES31.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, scoresSSBO)
