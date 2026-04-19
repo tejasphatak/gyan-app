@@ -30,9 +30,12 @@ class OnnxEncoder(private val context: Context) {
 
         env = OrtEnvironment.getEnvironment()
         val opts = OrtSession.SessionOptions().apply {
-            try { addNnapi() } catch (_: Exception) {} // GPU/NPU if available
+            // Skip NNAPI — many phones have buggy drivers that reject transformer ops
+            // CPU is fast enough for single-query encoding (~50ms)
+            setIntraOpNumThreads(4)
         }
 
+        // Read model from assets
         val modelBytes = context.assets.open("model.onnx").use { it.readBytes() }
         session = env!!.createSession(modelBytes, opts)
 

@@ -173,8 +173,15 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     private suspend fun queryLocal(question: String): QueryResult = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
-            // Encode query via on-device ONNX MiniLM
-            val queryEmb = onnxEncoder.encode(question)
+            // Encode query — try on-device ONNX, fall back to remote
+            val queryEmb = try {
+                if (onnxEncoder.isLoaded) onnxEncoder.encode(question)
+                else RemoteEncoder().encode(question)
+            } catch (e: Exception) {
+                CrashReporter.capture(app, e, "encode: $question")
+                // Last resort: remote
+                RemoteEncoder().encode(question)
+            }
             val results = localEngine.search(queryEmb, topK = 5)
             if (results.isNotEmpty() && results[0].score > 0.3f) {
                 val best = results[0]
