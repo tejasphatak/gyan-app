@@ -40,7 +40,7 @@ android {
 
     // Don't compress model/data files (they're already dense)
     androidResources {
-        noCompress += listOf("onnx", "db", "npy", "json")
+        noCompress += listOf("onnx", "db", "npy", "json", "bin", "txt")
     }
 
     // Allow large APK for bundled model

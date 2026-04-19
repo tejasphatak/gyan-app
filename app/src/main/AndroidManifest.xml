@@ -4,9 +4,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".GyanApp"
         android:allowBackup="true"
         android:label="Gyan"
         android:supportsRtl="true"
+        android:largeHeap="true"
         android:theme="@style/Theme.Gyan">
         <activity
             android:name=".MainActivity"
