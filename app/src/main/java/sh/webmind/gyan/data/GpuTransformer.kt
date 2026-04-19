@@ -62,7 +62,7 @@ class GpuTransformer(private val context: Context) {
 
     // KB
     private var kbCount = 0
-    private var kbAnswers: List<String> = emptyList()
+    private var answersDb: android.database.sqlite.SQLiteDatabase? = null
 
     private var ready = false
     val isReady get() = ready
@@ -117,7 +117,15 @@ class GpuTransformer(private val context: Context) {
     }
 
     fun getAnswer(index: Int): String {
-        return kbAnswers.getOrElse(index) { "" }
+        val cursor = answersDb?.rawQuery("SELECT answer FROM answers WHERE idx = ?", arrayOf(index.toString())) ?: return ""
+        return if (cursor.moveToFirst()) {
+            val ans = cursor.getString(0) ?: ""
+            cursor.close()
+            ans
+        } else {
+            cursor.close()
+            ""
+        }
     }
 
     // ─── CPU Forward Pass (working reference, GPU version below) ───
@@ -533,45 +541,15 @@ class GpuTransformer(private val context: Context) {
     }
 
     private fun loadKBAnswers(answersFile: File) {
-        // Stream-read answers from metadata JSON
-        val answers = ArrayList<String>(kbCount)
-        val reader = answersFile.bufferedReader(bufferSize = 65536)
-        val sb = StringBuilder()
-        var depth = 0
-        var inString = false
-        var escape = false
-        val buf = CharArray(65536)
-
-        reader.use { br ->
-            while (true) {
-                val read = br.read(buf)
-                if (read == -1) break
-                for (i in 0 until read) {
-                    val c = buf[i]
-                    if (escape) { sb.append(c); escape = false; continue }
-                    if (c == '\\' && inString) { sb.append(c); escape = true; continue }
-                    if (c == '"') { inString = !inString; sb.append(c); continue }
-                    if (inString) { sb.append(c); continue }
-                    when (c) {
-                        '{' -> { depth++; sb.append(c) }
-                        '}' -> {
-                            depth--; sb.append(c)
-                            if (depth == 0) {
-                                try {
-                                    val obj = org.json.JSONObject(sb.toString())
-                                    answers.add(obj.optString("a", obj.optString("answer", "")))
-                                } catch (_: Exception) { answers.add("") }
-                                sb.clear()
-                            }
-                        }
-                        '[', ']', ',' -> if (depth > 0) sb.append(c)
-                        else -> if (depth > 0) sb.append(c)
-                    }
-                }
-            }
-        }
-        kbAnswers = answers
-        Log.i(TAG, "KB answers: ${answers.size}")
+        // Just open the pre-built SQLite DB — zero parsing, zero memory
+        answersDb = android.database.sqlite.SQLiteDatabase.openDatabase(
+            answersFile.absolutePath, null, android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+        )
+        val cursor = answersDb!!.rawQuery("SELECT COUNT(*) FROM answers", null)
+        cursor.moveToFirst()
+        val count = cursor.getInt(0)
+        cursor.close()
+        Log.i(TAG, "KB answers DB: $count rows")
     }
 
     // ─── Tokenizer ───

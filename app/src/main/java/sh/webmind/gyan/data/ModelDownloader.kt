@@ -20,7 +20,7 @@ class ModelDownloader(private val context: Context) {
         private const val MODEL_BASE =
             "https://huggingface.co/TejaDaBheja/gyan-model/resolve/main"
         private const val EMBEDDINGS_FILE = "embeddings.npy"
-        private const val METADATA_FILE = "metadata.json"
+        private const val METADATA_FILE = "answers.db"
     }
 
     private val http = OkHttpClient.Builder()
