@@ -1,0 +1,28 @@
+# Build
+.gradle/
+build/
+app/build/
+*.apk
+
+# Android SDK
+local.properties
+
+# Keystore — NEVER commit
+*.keystore
+*.jks
+
+# Model data — too large for git
+data/
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/

@@ -1,0 +1,4 @@
+onnxruntime>=1.17
+qdrant-client>=1.17
+transformers>=4.40
+numpy>=1.24
