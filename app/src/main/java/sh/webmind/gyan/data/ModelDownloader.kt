@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit
 class ModelDownloader(private val context: Context) {
 
     companion object {
-        private const val RELEASE_BASE =
-            "https://github.com/tejasphatak/gyan-app/releases/download/v0.1.0"
+        private const val MODEL_BASE =
+            "https://huggingface.co/TejaDaBheja/gyan-model/resolve/main"
         private const val EMBEDDINGS_FILE = "embeddings.npy"
         private const val METADATA_FILE = "metadata.json"
     }
@@ -46,14 +46,14 @@ class ModelDownloader(private val context: Context) {
         if (isModelReady()) return@withContext
 
         downloadFile(
-            url = "$RELEASE_BASE/$EMBEDDINGS_FILE",
+            url = "$MODEL_BASE/$EMBEDDINGS_FILE",
             dest = embeddingsFile,
             name = "Knowledge embeddings",
             onProgress = onProgress,
         )
 
         downloadFile(
-            url = "$RELEASE_BASE/$METADATA_FILE",
+            url = "$MODEL_BASE/$METADATA_FILE",
             dest = metadataFile,
             name = "Knowledge base",
             onProgress = onProgress,
