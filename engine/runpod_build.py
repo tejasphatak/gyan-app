@@ -109,7 +109,7 @@ def main():
     print(f"4. scp runpod:{pod_id}:/workspace/kb_out/* {args.output}/")
     print(f"5. runpodctl stop pod {pod_id}")
 
-    print(f"\nTo terminate: python3 -c \"import runpod; runpod.api_key='{api_key}'; runpod.terminate_pod('{pod_id}')\"")
+    print(f"\nTo terminate: python3 -c \"import runpod; runpod.api_key='YOUR_KEY'; runpod.terminate_pod('{pod_id}')\"")
 
 
 if __name__ == "__main__":
