@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.webmind.gyan.data.*
 
-class ChatViewModel(app: Application) : AndroidViewModel(app) {
+class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private val client = GyanClient()
     private val localEngine = LocalEngine(app)
@@ -20,19 +20,22 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     val isLoading = mutableStateOf(false)
     val engineStatus = mutableStateOf<HealthResult?>(null)
     val loadingProgress = mutableStateOf("Initializing...")
-    val downloadProgress = mutableStateOf(0f) // 0.0 to 1.0
+    val downloadProgress = mutableStateOf(0f)
     val isDownloading = mutableStateOf(false)
     val isReady = mutableStateOf(false)
 
     init {
         viewModelScope.launch {
-            initEngine()
+            try {
+                initEngine()
+            } catch (e: Exception) {
+                loadingProgress.value = "Error: ${e.message}"
+            }
         }
     }
 
     private suspend fun initEngine() {
         if (downloader.isModelReady()) {
-            // Model already downloaded — load it
             loadingProgress.value = "Loading knowledge base..."
             try {
                 localEngine.load(downloader.embeddingsFile, downloader.metadataFile)
@@ -44,7 +47,6 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 fallbackToServer()
             }
         } else {
-            // Need to download model
             downloadModel()
         }
     }
@@ -63,8 +65,6 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             isDownloading.value = false
-
-            // Load the downloaded model
             loadingProgress.value = "Loading knowledge base..."
             localEngine.load(downloader.embeddingsFile, downloader.metadataFile)
             loadingProgress.value = "${localEngine.pairCount} knowledge pairs ready"
@@ -85,7 +85,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             loadingProgress.value = "Connected to server (${health.points} pairs)"
             isReady.value = true
         } else {
-            loadingProgress.value = "Offline — download model to get started"
+            loadingProgress.value = "Tap Retry to download the model"
         }
     }
 
@@ -159,8 +159,6 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun queryLocal(question: String): QueryResult = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
-            // Simple text-hash based embedding for now (until ONNX model is bundled)
-            // Use word-level cosine: encode question as bag-of-words hash → search
             val queryEmb = simpleEncode(question)
             val results = localEngine.search(queryEmb, topK = 5)
             if (results.isNotEmpty() && results[0].score > 0.3f) {
@@ -188,7 +186,6 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Simple word-hash encoding — placeholder until ONNX model is bundled. */
     private fun simpleEncode(text: String): FloatArray {
         val embedding = FloatArray(384)
         val words = text.lowercase().split(Regex("\\W+")).filter { it.length > 1 }
@@ -198,7 +195,6 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 embedding[i] += ((hash * (i + 1)) % 1000).toFloat() / 1000f
             }
         }
-        // Normalize
         var norm = 0f
         for (v in embedding) norm += v * v
         norm = kotlin.math.sqrt(norm)
