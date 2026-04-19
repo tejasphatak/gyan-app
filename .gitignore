@@ -12,7 +12,7 @@ local.properties
 *.jks
 
 # Model data — too large for git
-data/
+/data/
 
 # IDE
 .idea/

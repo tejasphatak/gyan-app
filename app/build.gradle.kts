@@ -38,9 +38,15 @@ android {
         }
     }
 
-    // Don't compress ONNX model files
+    // Don't compress model/data files (they're already dense)
     androidResources {
-        noCompress += listOf("onnx", "db")
+        noCompress += listOf("onnx", "db", "npy", "json")
+    }
+
+    // Allow large APK for bundled model
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 }
 

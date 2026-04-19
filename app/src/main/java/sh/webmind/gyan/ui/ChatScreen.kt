@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,7 +42,9 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
         topBar = { ChatTopBar(viewModel) },
         bottomBar = { ChatInput(viewModel) },
     ) { padding ->
-        if (viewModel.messages.isEmpty()) {
+        if (viewModel.isDownloading.value || !viewModel.isReady.value) {
+            DownloadScreen(viewModel, modifier = Modifier.padding(padding))
+        } else if (viewModel.messages.isEmpty()) {
             EmptyState(modifier = Modifier.padding(padding))
         } else {
             LazyColumn(
@@ -69,14 +72,13 @@ private fun ChatTopBar(viewModel: ChatViewModel) {
         title = {
             Column {
                 Text("Gyan", style = MaterialTheme.typography.titleLarge)
-                if (status != null) {
-                    Text(
-                        text = if (status.ok) "${status.points} knowledge pairs"
-                               else "Offline",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (status.ok) MaterialTheme.colorScheme.secondary
-                                else MaterialTheme.colorScheme.error,
-                    )
+                Text(
+                    text = viewModel.loadingProgress.value,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (status?.ok == true) MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (false) { // placeholder to keep the structure
                 }
             }
         },
@@ -91,6 +93,55 @@ private fun ChatTopBar(viewModel: ChatViewModel) {
             containerColor = MaterialTheme.colorScheme.surface,
         ),
     )
+}
+
+@Composable
+private fun DownloadScreen(viewModel: ChatViewModel, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp),
+        ) {
+            Text(
+                "Gyan",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                viewModel.loadingProgress.value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+
+            if (viewModel.isDownloading.value) {
+                LinearProgressIndicator(
+                    progress = { viewModel.downloadProgress.value },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(6.dp),
+                    trackColor = MaterialTheme.colorScheme.outlineVariant,
+                )
+                Text(
+                    "${(viewModel.downloadProgress.value * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            } else if (!viewModel.isReady.value) {
+                // Download failed — show retry
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp,
+                )
+                TextButton(onClick = { viewModel.retryDownload() }) {
+                    Text("Retry Download")
+                }
+            }
+        }
+    }
 }
 
 @Composable
