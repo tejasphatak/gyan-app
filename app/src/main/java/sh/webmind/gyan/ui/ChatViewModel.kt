@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.webmind.gyan.data.*
+import sh.webmind.gyan.data.CrashReporter
 
 class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
 
@@ -25,12 +26,16 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
     val isDownloading = mutableStateOf(false)
     val isReady = mutableStateOf(false)
 
+    val errorReport = mutableStateOf("")
+
     init {
         viewModelScope.launch {
             try {
                 initEngine()
             } catch (e: Exception) {
+                CrashReporter.capture(app, e, "initEngine")
                 loadingProgress.value = "Error: ${e.message}"
+                errorReport.value = CrashReporter.getLastError()
             }
         }
     }
@@ -46,7 +51,9 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
                 engineStatus.value = HealthResult(ok = true, points = localEngine.pairCount)
                 isReady.value = true
             } catch (e: Exception) {
+                CrashReporter.capture(app, e, "loadModel")
                 loadingProgress.value = "Load failed: ${e.message}"
+                errorReport.value = CrashReporter.getLastError()
                 fallbackToServer()
             }
         } else {
@@ -77,6 +84,8 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
             isReady.value = true
         } catch (e: Exception) {
             isDownloading.value = false
+            CrashReporter.capture(app, e, "downloadModel")
+            errorReport.value = CrashReporter.getLastError()
             loadingProgress.value = "Failed: ${e.message}\n\nTap Retry to try again"
             // Don't fallback to server — show the actual error
         }
@@ -184,6 +193,7 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
                 )
             }
         } catch (e: Exception) {
+            CrashReporter.capture(app, e, "queryLocal: $question")
             QueryResult(
                 answer = "", confidence = 0f, hops = 0,
                 timeMs = (System.currentTimeMillis() - start).toInt(),
