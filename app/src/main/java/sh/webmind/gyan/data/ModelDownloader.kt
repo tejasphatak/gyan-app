@@ -16,8 +16,9 @@ import java.util.concurrent.TimeUnit
 class ModelDownloader(private val context: Context) {
 
     companion object {
+        // Use 88K small model that fits in phone memory (135MB GPU buffer)
         private const val MODEL_BASE =
-            "https://huggingface.co/TejaDaBheja/gyan-model/resolve/main"
+            "https://huggingface.co/TejaDaBheja/gyan-model/resolve/main/small"
         private const val EMBEDDINGS_FILE = "embeddings.npy"
         private const val METADATA_FILE = "metadata.json"
     }
@@ -33,10 +34,21 @@ class ModelDownloader(private val context: Context) {
     val embeddingsFile: File get() = File(modelDir, EMBEDDINGS_FILE)
     val metadataFile: File get() = File(modelDir, METADATA_FILE)
 
-    /** Check if model is already downloaded. */
+    /** Check if model is already downloaded (and is the right size). */
     fun isModelReady(): Boolean {
-        return embeddingsFile.exists() && metadataFile.exists() &&
-               embeddingsFile.length() > 1_000_000 && metadataFile.length() > 1_000_000
+        if (!embeddingsFile.exists() || !metadataFile.exists()) return false
+        // Small model: embeddings ~68MB, metadata ~23MB
+        // If files are too large (old 1.24M model), re-download
+        val embSize = embeddingsFile.length()
+        return embSize in 1_000_000..200_000_000
+    }
+
+    /** Delete old model to force re-download. */
+    fun clearModel() {
+        embeddingsFile.delete()
+        metadataFile.delete()
+        // Also clear any SQLite DB from old LocalEngine
+        java.io.File(embeddingsFile.parentFile, "metadata.db").delete()
     }
 
     /** Download model files with progress callback. */

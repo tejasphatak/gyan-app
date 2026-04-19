@@ -71,11 +71,17 @@ class GpuTransformer(private val context: Context) {
     /** Initialize everything: EGL → shaders → weights → KB */
     fun init(embeddingsFile: File, answersFile: File): Boolean {
         try {
+            Log.i(TAG, "Step 1: EGL")
             initEGL()
+            Log.i(TAG, "Step 2: Shaders")
             compileShaders()
+            Log.i(TAG, "Step 3: Weights")
             loadWeights()
+            Log.i(TAG, "Step 4: Vocab")
             loadVocab()
+            Log.i(TAG, "Step 5: KB Embeddings")
             loadKBEmbeddings(embeddingsFile)
+            Log.i(TAG, "Step 6: KB Answers")
             loadKBAnswers(answersFile)
             ready = true
             Log.i(TAG, "GPU Transformer ready. $kbCount KB pairs.")

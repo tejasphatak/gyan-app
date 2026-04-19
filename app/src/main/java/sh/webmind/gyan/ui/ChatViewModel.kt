@@ -43,6 +43,7 @@ class ChatViewModel(private val app: Application) : AndroidViewModel(app) {
         if (downloader.isModelReady()) {
             loadModel()
         } else {
+            downloader.clearModel()  // clean up any old/wrong model
             downloadModel()
         }
     }
